@@ -1,0 +1,47 @@
+name: Lambda CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  toolSetup:
+    name: Node Tool Setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["14.x"]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # Initialize Node
+      - name: Install Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+  deploy:
+    name: Deploy Function
+    runs-on:  ubuntu-latest
+    needs:  toolSetup
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install AWS CLI 2
+        run:  |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install --update
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Deploy to Lambda
+        run: |
+          npm install
+          npm run deploy
