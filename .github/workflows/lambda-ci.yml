@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  IMAGE_TAG:  ${{ github.sha }}
+
 jobs:
   toolSetup:
     name: Node Tool Setup
@@ -41,7 +44,28 @@ jobs:
           aws-secret-access-key:  ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-1
 
-      - name: Deploy to Lambda
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and Tag Docker Image
+        id: build-image
+        uses: docker/build-push@v2
+        with:
+          context:  .
+          push: false
+          tags: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+      - name: Push Docker Image to ECR
         run: |
-          npm install
-          npm run deploy
+          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+      # - name: Deploy to Lambda
+      #   run: |
+      #     npm install
+      #     npm run deploy
+
+      - name: Update AWS Lambda Function
+        id: update-lambda
+        run:  |
+          aws lambda update-function-code --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} --image-uri ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
