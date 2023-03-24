@@ -5,8 +5,8 @@ on:
     branches:
       - main
 
-env:
-  IMAGE_TAG:  ${{ github.sha }}
+# env:
+#   IMAGE_TAG:  ${{ github.sha }}
 
 jobs:
   toolSetup:
@@ -54,11 +54,11 @@ jobs:
         with:
           context:  .
           push: false
-          tags: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          tags: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
       - name: Push Docker Image to ECR
         run: |
-          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
 
       # - name: Deploy to Lambda
       #   run: |
@@ -68,4 +68,4 @@ jobs:
       - name: Update AWS Lambda Function
         id: update-lambda
         run:  |
-          aws lambda update-function-code --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} 
+          aws lambda update-function-code --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} --image-uri ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:latest
